@@ -1,10 +1,18 @@
 defmodule Datos do
 @moduledoc """
-Modulo con Datos del Proyecto (Realizado con IA)
+Modulo con Datos y Parámetros del Proyecto (Realizado con IA)
 - Autores: Briyith Sanchez Alonso y Nicolás Arango Gutiérrez
 - Fecha: Septiembre del 2026
 - Licencia: GNU GPL V3
 """
+  #Parametros
+  @base_precio 1800
+  @meta_diaria 2000
+  @dias 6
+  @max_litros 800
+  @umbral_bono 450
+  @bono_diario 25000
+  @costo_transporte 18000
 
   # Productores
   def productores do
