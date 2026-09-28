@@ -61,25 +61,26 @@ end
 Funcion que calcula el descuento por utilizar el transporte del centro
 
 ## Parametros
-- Productor: Usa la información para determinar si usa o no el transporte
+- Productor: Mapa con la informacion del productor donde se verifica si usa o no el transporte
 - Entregas_validas: Lista con todas las entregas validadas hechas por el productor
 
 ## Ejemplo
-iex> Liquidacion.transporte(productor, entregas_validas)
+iex> Liquidacion.descuento_transporte(productor, entregas_validas)
 "36000"
 """
-def descuento_transporte(productor, entregas_validas) do
-if productor.transporte do
-  dias_entregas=
-    entregas_validas
-    |> Enum.map(fn entrega -> entrega.dia end)
-    |> Enum.uniq()
-    |> length()
+def descuento_transporte(%{transporte: true}, entregas_validas) do
+dias_entregas=
+  entregas_validas
+  |> Enum.map(fn entrega -> entrega.dia end)
+  |> Enum.uniq()
+  |> length()
 
-    dias_entregas * Datos.costo_transporte()
-  else
-    0
+  dias_entregas * Datos.costo_transporte()
 end
+
+# No aplica ningun descuento si el Productor no usa el transporte del centro
+def descuento_transporte(%{transporte: false}, _entregas_validas) do
+  0
 end
 
 @doc """
