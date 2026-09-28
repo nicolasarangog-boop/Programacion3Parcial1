@@ -33,7 +33,7 @@ end
 Funcion que calcula el total de bonificaciones por volumen de un productor
 
 ## Parametros
-- Entregas_validas: Lista con todas las entregas validadas
+- Entregas_validas: Lista con todas las entregas validadas hechas por un productor
 
 ## Ejemplo
 iex> Liquidacion.bonos_por_volumen(entregas)
@@ -42,7 +42,7 @@ iex> Liquidacion.bonos_por_volumen(entregas)
 def bonos_por_volumen (entregas_validas) do
 entregas_validas
 |> Enum.group_by(fn entrega -> entrega.dia end)
-|> Enum.map(fn {_, entregas_dia} ->
+|> Enum.map(fn {_dia, entregas_dia} ->
   litros_dia=
     Enum.reduce(entregas_dia,0, fn entrega, acumulado ->
       acumulado + entrega.litros
@@ -56,5 +56,32 @@ entregas_validas
 end)
 |> Enum.sum()
 end
+
+@doc """
+Funcion que calcula el descuento por utilizar el transporte del centro
+
+## Parametros
+- Productor: Usa la información para determinar si usa o no el transporte
+- Entregas_validas: Lista con todas las entregas validadas hechas por el productor
+
+## Ejemplo
+iex> Liquidacion.transporte(productor, entregas_validas)
+"36000"
+"""
+def descuento_transporte(productor, entregas_validas) do
+if productor.transporte do
+  dias_entregas=
+    entregas_validas
+    |> Enum.map(fn entrega -> entrega.dia end)
+    |> Enum.uniq()
+    |> length()
+
+    dias_entregas * Datos.costo_transporte()
+  else
+    0
+end
+end
+
+
 
 end
