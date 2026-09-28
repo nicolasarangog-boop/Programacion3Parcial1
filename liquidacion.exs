@@ -7,16 +7,15 @@ Modulo Calcula Valor Entregas, Bonificaciones, Descuentos y Liquidacion
 """
 
 @doc """
-Funcion que establece el valor de una entrega de acuerdo con el porcentaje de grasa
+Funcion que calcula el valor de una entrega de acuerdo con el porcentaje de grasa
 
-# Parametros
+## Parametros
 - Litros: Cantidad de litros recibidos en la entrega
 - Grasa: Porcentaje de la grasa de la muestra recibida en la entrega
 
-#Ejemplo
+## Ejemplo
 iex> Liquidacion.valor_entrega(240, 3.8)
 "457.920"
-
 """
 def valor_entrega(litros, grasa) do
   valor_inicial= litros * Datos.tarifa_base()
@@ -30,6 +29,32 @@ def valor_entrega(litros, grasa) do
   end
 end
 
+@doc """
+Funcion que calcula el total de bonificaciones por volumen de un productor
 
+## Parametros
+- Entregas_validas: Lista con todas las entregas validadas
+
+## Ejemplo
+iex> Liquidacion.bonos_por_volumen(entregas)
+"75000"
+"""
+def bonos_por_volumen (entregas_validas) do
+entregas_validas
+|> Enum.group_by(fn entrega -> entrega.dia end)
+|> Enum.map(fn {_, entregas_dia} ->
+  litros_dia=
+    Enum.reduce(entregas_dia,0, fn entrega, acumulado ->
+      acumulado + entrega.litros
+    end)
+
+    if litros_dia >= Datos.umbral_bono() do
+      Datos.bono_diario()
+    else
+      0
+    end
+end)
+|> Enum.sum()
+end
 
 end
