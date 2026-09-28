@@ -6,7 +6,7 @@ Modulo con Datos y Parámetros del Proyecto (Realizado con IA)
 - Licencia: GNU GPL V3
 """
   #Parametros
-  @base_precio 1800
+  @tarifa_base 1800
   @meta_diaria 2000
   @dias 6
   @max_litros 800
