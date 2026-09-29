@@ -27,7 +27,7 @@ def reporte1(entregas_rechazadas) do
     :porcentaje_invalido
   ]
 
-  Enum.each(motivos, fn motivo1 -> conteo= Enum.count(entregas rechazadas, fn {_e, motivo} -> motivo == motivo1 end)
+  Enum.each(motivos, fn motivo1 -> conteo= Enum.count(entregas_rechazadas, fn {_e, motivo} -> motivo == motivo1 end)
   IO.puts("Motivo #{motivo1}: #{conteo} rechazos") end )
 
   IO.puts(" ")
@@ -38,7 +38,7 @@ Funcion que reporta litros almacenados por tanque y porcentaje de ocupacion
 
 ## Parametros
 - Entregas_validas: Lista con todas las entregas validadas
--Tanques: Mapa con los datos de los tanques
+-Tanques: Lista de mapas con los datos de los tanques
 
 ## Ejemplo
 iex> Reportes.reporte2(entregas_validas, tanques)
@@ -54,18 +54,82 @@ end
 Funcion para obtener en base a las entregas validadas, la informacion de todos los tanques
 
 ## Parametros
-- Entregas_validas: Lista de entregas validadas
 - Tanques: Lista de los tanques
+- Entregas_validas: Lista de entregas validadas
 
 ## Ejemplo
-iex> Reportes.informacion_tanques(entregas_validas, tanques)
+iex> Reportes.informacion_tanques(tanques, entregas_validas)
 [...]
 """
-def informacion_tanques(entregas_validas, tanques) do
+def informacion_tanques(tanques, entregas_validas) do
   tanques
   |> Enum.map(fn tanque ->
   informacion_tanque(tanque, entregas_validas)
   end)
+end
+
+@doc """
+Funcion para obtener la informacion de un tanque como los litros almacenados y % ocupacion
+
+## Parametros
+- Tanque: Mapa con la informacion del tanque
+- Entregas_validas: Lista de entregas validadas
+
+## Ejemplo
+iex> tanque = %{id: "T01", nombre: "Tanque 1", capacidad: 2000}
+iex> entregas_validas = [%{tanque: "T01", litros: 700}]
+iex> Reportes.informacion_tanque(tanque, entregas_validas)
+%{id: "T01", nombre: "Tanque 1", litros: 700, capacidad: 2000, ocupacion: 35.0}
+"""
+def informacion_tanque(tanque, entregas_validas) do
+  litros = litros_tanque(tanque.id, entregas_validas)
+  ocupacion= porcentaje_ocupacion(litros, tanque.capacidad)
+
+  %{
+    id: tanque.id,
+    nombre: tanque.nombre,
+    litros: litros,
+    capacidad: tanque.capacidad,
+    ocupacion: ocupacion
+  }
+end
+
+@doc """
+Funcion para calcular a partir de las entregas validadas, la cantidad de litros almacenados en un tanque
+
+## Parametros
+- Id_tanque: Identificación Unica del tanque que se desea consultar
+- Entregas_validas: Lista de entregas validadas
+
+## Ejemplo
+iex> entregas_validas = [
+%{tanque: "T01", litros: 300},
+%{tanque: "T02", litros: 200},
+]
+iex> Reportes.litros_tanque("T01", entregas_validas)
+300
+"""
+def litros_tanque(id_tanque, entregas_validas) do
+  entregas_validas
+  |> Enum.filter(fn entrega_valida -> entrega_valida.tanque == id_tanque end)
+  |> Enum.reduce(0, fn entrega_valida, acumulado ->
+    acumulado + entrega_valida.litros
+  end)
+end
+
+@doc """
+Funcion para calcular el porcentaje de ocupacion de un tanque
+
+## Parametros
+- Litros: Cantidad de litros almacenados en el tanque
+- Capacidad: Capacidad total del tanque en litros
+
+## Ejemplo
+iex> Reportes.porcentaje_ocupacion(700,2000)
+"35"
+"""
+def porcentaje_ocupacion(litros, capacidad) do
+  litros/capacidad * 100
 end
 
 @doc """
@@ -92,8 +156,5 @@ def ordenar_ocupacion(tanques) do
     tanque.ocupacion
   end, :desc)
 end
-
-
-
 
 end
