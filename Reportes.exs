@@ -33,4 +33,67 @@ def reporte1(entregas_rechazadas) do
   IO.puts(" ")
 end
 
+@doc """
+Funcion que reporta litros almacenados por tanque y porcentaje de ocupacion
+
+## Parametros
+- Entregas_validas: Lista con todas las entregas validadas
+-Tanques: Mapa con los datos de los tanques
+
+## Ejemplo
+iex> Reportes.reporte2(entregas_validas, tanques)
+[...]
+"""
+def reporte2(entregas_validas, tanques) do
+tanques
+|> informacion_tanques(entregas_validas)
+|> ordenar_ocupacion()
+end
+
+@doc """
+Funcion para obtener en base a las entregas validadas, la informacion de todos los tanques
+
+## Parametros
+- Entregas_validas: Lista de entregas validadas
+- Tanques: Lista de los tanques
+
+## Ejemplo
+iex> Reportes.informacion_tanques(entregas_validas, tanques)
+[...]
+"""
+def informacion_tanques(entregas_validas, tanques) do
+  tanques
+  |> Enum.map(fn tanque ->
+  informacion_tanque(tanque, entregas_validas)
+  end)
+end
+
+@doc """
+Funcion para ordenar los tanques de mayor a menor porcentaje de ocupacion
+
+## Parametros
+- Tanques: Lista de mapas con la informacion de los tanques
+
+## Ejemplo
+iex> tanques =[
+ %{id: "T01", ocupacion: 35.0},
+ %{id: "T02", ocupacion: 80.0},
+]
+
+iex> Reportes.ordenar_ocupacion(tanques)
+[
+ %{id: "T02", ocupacion: 80.0},
+ %{id: "T01", ocupacion: 35.0}
+]
+"""
+def ordenar_ocupacion(tanques) do
+  tanques
+  |> Enum.sort_by(fn tanque ->
+    tanque.ocupacion
+  end, :desc)
+end
+
+
+
+
 end

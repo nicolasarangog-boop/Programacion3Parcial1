@@ -1,10 +1,10 @@
 defmodule Validacion do
-       @moduledoc """
+  @moduledoc """
   Modulo para validar las entregas de leche recibidas.
 - Autores: Nicolás Arango Gutiérrez y Briyith Sanchez Alonso
 - Fecha: Septiembre del 2026
 - Licencia: GNU GPL V3
-  """
+"""
   @doc """
   Función principal que valida una entrega aplicando secuencialmente las reglas.
 
