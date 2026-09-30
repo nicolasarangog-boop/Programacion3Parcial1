@@ -11,10 +11,10 @@ def generar_reportes(entregas_validas, entregas_rechazadas, productores, tanques
   reporte2(entregas_validas, tanques)
   reporte3(entregas_validas)
   reporte4(entregas_validas, productores)
-  reporte5(entregas_validas, productores)
+  reporte5(entregas_rechazadas, productores)
   reporte6(entregas_validas, productores)
   reporte7(entregas_validas, productores)
-  reporte8(entregas_validas, productores, tanques)
+  reporte8(entregas_validas, tanques)
 end
 
 @doc """
@@ -168,7 +168,7 @@ def ordenar_ocupacion(tanques) do
 end
 
 @doc """
-Genera el reporte 3 mostrando los litros recibidos por dia y verifica el cumplimiento de la meta
+Genera el reporte mostrando los litros recibidos por dia y verifica el cumplimiento de la meta
 
 ##Parámetros
 -entregas_validas: lista con todas las entregas validas
@@ -180,7 +180,7 @@ iex> Reportes.reporte3(entregas_validas)
 def reporte3(entregas_validas) do
   1..6
   |> informacion_dias(entregas_validas)
-  |> evaluar_cumplimiento_metas
+  |> evaluar_cumplimiento_metas()
 end
 
 @doc """
@@ -194,7 +194,7 @@ obtiene la información de litros y el estado de la meta para cada uno de los 6 
 iex> Reportes.informacion_dias(1..6, entregas_validas)
 [...]
 """
-def informacion_dias(dia, entregas_validas) do
+def informacion_dias(dias, entregas_validas) do
   dias
   |>Enum.map(fn dia ->
    informacion_dia(dia, entregas_validas)
@@ -271,7 +271,7 @@ iex> Reportes.reporte4(entregas_validas, productores)
 def reporte4(entregas_validas, productores) do
   productores
    |> calcular_liquidaciones(entregas_validas)
-   |> Enum.sort_by(fn liquidaciones  -> liquidacion.neto end, :desc)
+   |> Enum.sort_by(fn liquidacion -> liquidacion.neto end, :desc)
    |> imprimir_liquidacion()
 end
 
@@ -288,14 +288,14 @@ iex> Reportes.calcular_liquidaciones(productores, entregas_validas)
 """
 def calcular_liquidaciones(productores, entregas_validas) do
   productores
-  |> Enum.map(fn productor -> entrega_liquidada=Enum.filter(entregas_validas, fn entrega -> entrega.productor== productor.codigo end )
+  |> Enum.map(fn productor -> entrega_productor=Enum.filter(entregas_validas, fn entrega -> entrega.productor== productor.codigo end )
 
 
   litros= Enum.reduce(entregas_productor,0, fn entrega, acc  -> acc + entrega.litros end)
   valor= Enum.reduce(entregas_productor,0, fn entrega, acc  -> acc + calcular_valor_entrega(entrega) end)
   bono= calcular_bono_volumen(entregas_productor)
 
-  dias_activos=entregas_productor |> enum.map(fn entrega ->entrega.dia end) |> Enum.uniq() |> Enum.count()
+  dias_activos=entregas_productor |> Enum.map(fn entrega ->entrega.dia end) |> Enum.uniq() |> Enum.count()
   transporte= case productor.transporte do
     true -> dias_activos * 18000
     false -> 0
@@ -331,7 +331,7 @@ def imprimir_liquidacion(liquidaciones) do
 IO.puts(" ")
 end
 
-defp calcular_bono_volumen(entregas_productor) do
+defp calcular_valor_entrega(entrega) do
   base= entrega.litros * 1800
   cond do
     entrega.grasa >= 3.5 -> base * 1.06
@@ -629,7 +629,7 @@ end
   def obtener_estado_tanques(tanques, entregas_validas) do
     tanques
     |> Enum.map(fn tanque ->
-      entregas_tanque = Enum.filter(entregas_validas, fn entrega -> entrega.tanque == tanque.codigo end)
+      entregas_tanque = Enum.filter(entregas_validas, fn entrega -> entrega.tanque == tanque.id end)
 
       litros_almacenados = Enum.reduce(entregas_tanque, 0, fn entrega, acumulador -> acumulador + entrega.litros end)
 
@@ -639,7 +639,7 @@ end
       end
 
       %{
-        codigo: tanque.codigo,
+        codigo: tanque.id,
         capacidad: tanque.capacidad,
         litros_almacenados: litros_almacenados,
         porcentaje_ocupacion: porcentaje_ocupacion
@@ -662,7 +662,7 @@ end
 
       false ->
         Enum.each(lista_estado_tanques, fn estado_tanque ->
-          IO.puts("tanque: #{estado_tanque.codigo}")
+          IO.puts("tanque: #{estado_tanque.id}")
           IO.puts("  - Capacidad total: #{estado_tanque.capacidad} L")
           IO.puts("  - Litros almacenados: #{estado_tanque.litros_almacenados} L")
           IO.puts("  - Porcentaje de ocupación: #{estado_tanque.porcentaje_ocupacion}%\n")
