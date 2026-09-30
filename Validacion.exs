@@ -33,6 +33,34 @@ defmodule Validacion do
   end
 
   @doc """
+  Función para validar las entregas
+
+  ## Parámetros
+  - entregas: lista de mapas con las entregas
+  - productores: lista de mapas con los productores
+  - tanques: lista de mapas con los tanques
+
+  ## Ejemplo
+    iex> entregas = [
+    ...>   %{productor: "P001", tanque: "T1", dia: 1, litros: 200, grasa: 3.5},
+    ...>   %{productor: "P999", tanque: "T1", dia: 1, litros: 200, grasa: 3.5}
+    ...> ]
+    iex> Validacion.validar_entregas(entregas, productores, tanques)
+    [
+      {:ok, %{productor: "P001", tanque: "T1", dia: 1, litros: 200, grasa: 3.5}},
+      {:error, :productor_desconocido}
+    ]
+  """
+  def validar_entregas(entregas, productores, tanques) do
+    Enum.map(entregas, fn entrega ->
+      case validar_entrega(entrega, productores, tanques) do
+        {:ok, entrega_valida} -> {:ok, entrega_valida}
+        {:error, motivo} -> {:error, motivo}
+      end
+    end)
+  end
+
+  @doc """
   Función para comprobar si el codigo de un productor existe
 
   ## Parámetro
