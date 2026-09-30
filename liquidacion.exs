@@ -15,7 +15,7 @@ Funcion que calcula el valor de una entrega de acuerdo con el porcentaje de gras
 
 ## Ejemplo
 iex> Liquidacion.valor_entrega(240, 3.8)
-"457.920"
+457.920
 """
 def valor_entrega(litros, grasa) do
   valor_inicial= litros * Datos.tarifa_base()
@@ -37,7 +37,7 @@ Funcion que calcula el total de bonificaciones por volumen de un productor
 
 ## Ejemplo
 iex> Liquidacion.bonos_por_volumen(entregas_validas)
-"75000"
+75000
 """
 def bonos_por_volumen (entregas_validas) do
 entregas_validas
@@ -66,7 +66,7 @@ Funcion que calcula el descuento por utilizar el transporte del centro
 
 ## Ejemplo
 iex> Liquidacion.descuento_transporte(productor, entregas_validas)
-"36000"
+36000
 """
 def descuento_transporte(%{transporte: true}, entregas_validas) do
 dias_entregas=

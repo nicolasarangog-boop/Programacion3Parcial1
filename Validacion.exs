@@ -42,8 +42,8 @@ defmodule Validacion do
 
   ## Ejemplo
     iex> entregas = [
-    ...>   %{productor: "P001", tanque: "T1", dia: 1, litros: 200, grasa: 3.5},
-    ...>   %{productor: "P999", tanque: "T1", dia: 1, litros: 200, grasa: 3.5}
+    ...>   %{productor: "P001", tanque: "T01", dia: 1, litros: 200, grasa: 3.5},
+    ...>   %{productor: "P999", tanque: "T01", dia: 1, litros: 200, grasa: 3.5}
     ...> ]
     iex> Validacion.validar_entregas(entregas, productores, tanques)
     {
@@ -71,7 +71,7 @@ defmodule Validacion do
 
   ## Ejemplo
   iex> Validacion.validar_productor("P001", productores)
-  true
+  :ok
   """
   def validar_productor(codigo, productores) do
     case Enum.any?(productores, fn productor -> productor.codigo == codigo end) do
@@ -88,8 +88,8 @@ defmodule Validacion do
   - tanques: lista de mapas con la información de los tanques
 
   ## Ejemplo
-  iex> Validacion.validar_tanque("T1", tanques)
-  true
+  iex> Validacion.validar_tanque("T01", tanques)
+  :ok
   """
   def validar_tanque(id, tanques) do
     case Enum.any?(tanques, fn tanque -> tanque.id == id end) do
@@ -106,7 +106,7 @@ defmodule Validacion do
 
   ## Ejemplo
   iex> Validacion.validar_dia(3)
-  true
+  :ok
   """
   def validar_dia(dia) do
     cond do
@@ -123,7 +123,7 @@ defmodule Validacion do
 
   ## Ejemplo
   iex> Validacion.validar_litros(250)
-  true
+  :ok
   """
   def validar_litros(litros) do
     cond do
@@ -140,7 +140,7 @@ defmodule Validacion do
 
   ## Ejemplo
   iex> Validacion.validar_grasa(3.8)
-  true
+  :ok
   """
   def validar_grasa(grasa) do
     cond do
