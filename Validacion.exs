@@ -33,7 +33,7 @@ defmodule Validacion do
   end
 
   @doc """
-  Función para validar las entregas
+  Función para validar las entregas y separarlas en entregas validas y rechazadas
 
   ## Parámetros
   - entregas: lista de mapas con las entregas
@@ -46,16 +46,18 @@ defmodule Validacion do
     ...>   %{productor: "P999", tanque: "T1", dia: 1, litros: 200, grasa: 3.5}
     ...> ]
     iex> Validacion.validar_entregas(entregas, productores, tanques)
-    [
-      {:ok, %{productor: "P001", tanque: "T1", dia: 1, litros: 200, grasa: 3.5}},
-      {:error, :productor_desconocido}
-    ]
+    {
+      [%{productor: "P001", tanque: "T01", dia: 1, litros: 200, grasa: 3.5}],
+      [{%{productor: "P999", tanque: "T01", dia: 1, litros: 200, grasa: 3.5},
+        :productor_desconocido}]
+    }
   """
   def validar_entregas(entregas, productores, tanques) do
-    Enum.map(entregas, fn entrega ->
+    entregas
+    |>Enum.reduce({[],[]}, fn entrega, {entregas_validas, entregas_rechazadas} ->
       case validar_entrega(entrega, productores, tanques) do
-        {:ok, entrega_valida} -> {:ok, entrega_valida}
-        {:error, motivo} -> {:error, motivo}
+        {:ok, entrega_valida} -> {entregas_validas ++ [entrega_valida], entregas_rechazadas}
+        {:error, motivo} -> {entregas_validas, entregas_rechazadas ++ [{entrega, motivo}]}
       end
     end)
   end
