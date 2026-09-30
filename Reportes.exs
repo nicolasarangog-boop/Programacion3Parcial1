@@ -5,30 +5,50 @@ Modulo para generar los reportes del centro de acopio
 - Fecha: Septiembre del 2026
 - Licencia: GNU GPL V3
 """
+  @meta_diaria 2000
+  @dias 1..6
+  @precio_base_litro 1800
+  @bono_volumen 25000
+  @litros_bono 450
+  @costo_transporte_dia 18000
+
 def generar_reportes(entregas_validas, entregas_rechazadas, productores, tanques) do
   IO.puts(" Reportes del centro de acopio ")
   reporte1(entregas_rechazadas)
   reporte2(entregas_validas, tanques)
   reporte3(entregas_validas)
   reporte4(entregas_validas, productores)
-  reporte5(entregas_rechazadas, productores)
+  reporte5(entregas_validas, productores)
   reporte6(entregas_validas, productores)
   reporte7(entregas_validas, productores)
-  reporte8(entregas_validas, tanques)
+  reporte8(entregas_validas,productores, tanques)
 end
 
 @doc """
-Genera el reporte mostrando la cantidad total de entregas rechazadas por motivo de rechazo
+Genera un reporte de las entregas rechazadas
 
-##Parámetros
--entregas_rechazadas: lista de entregas rechazadas
+## Parámetros
+- entregas_rechazadas: lista de tuplas donde cada elemento contiene una entrega rechazada y el motivo del rechazo.
 
 ## Ejemplo
+
+iex> entregas_rechazadas = [
+...>   {%{productor: "P001"}, :productor_desconocido},
+...>   {%{tanque: "T1"}, :tanque_desconocido},
+...>   {%{dia: 8}, :dia_invalido},
+...>   {%{litros: 50}, :litros_fuera_rango},
+...>   {%{grasa: 10}, :porcentaje_invalido}
+...> ]
 iex> Reportes.reporte1(entregas_rechazadas)
-:ok
+[
+  {:productor_desconocido, 1},
+  {:tanque_desconocido, 1},
+  {:dia_invalido, 1},
+  {:litros_fuera_rango, 1},
+  {:porcentaje_invalido, 1}
+]
 """
 def reporte1(entregas_rechazadas) do
-  IO.puts(" Entregas rechazadas ")
   motivos = [
     :productor_desconocido,
     :tanque_desconocido,
@@ -37,10 +57,14 @@ def reporte1(entregas_rechazadas) do
     :porcentaje_invalido
   ]
 
-  Enum.each(motivos, fn motivo1 -> conteo= Enum.count(entregas_rechazadas, fn {_e, motivo} -> motivo == motivo1 end)
-  IO.puts("Motivo #{motivo1}: #{conteo} rechazos") end )
+  Enum.map(motivos, fn motivo ->
+    conteo =
+      Enum.count(entregas_rechazadas, fn {_entrega, motivo_entrega} ->
+        motivo_entrega == motivo
+      end)
 
-  IO.puts(" ")
+    {motivo, conteo}
+  end)
 end
 
 @doc """
@@ -168,507 +192,722 @@ def ordenar_ocupacion(tanques) do
 end
 
 @doc """
-Genera el reporte mostrando los litros recibidos por dia y verifica el cumplimiento de la meta
+Genera el reporte mostrando los litros recibidos por cada día y verifica si se cumplió la meta diaria de 2000 litros.
 
-##Parámetros
--entregas_validas: lista con todas las entregas validas
+## Parámetros
+- entregas_validas: lista de entregas validadas
 
-##ejemplo
+## Ejemplo
 iex> Reportes.reporte3(entregas_validas)
-[...]
+:ok
 """
 def reporte3(entregas_validas) do
-  1..6
+  @dias
   |> informacion_dias(entregas_validas)
   |> evaluar_cumplimiento_metas()
 end
 
 @doc """
-obtiene la información de litros y el estado de la meta para cada uno de los 6 días
+Obtiene la información de litros recibidos para cada uno de los 6 días
 
 ## Parámetros
--dias: Rango o lista con los dias a evaluar(1..6)
--entregas_validas: lista de entregas validadas
+- dias:lista de días
+- entregas_validas: lista de mapas que contiene las entregas
+  validadas
 
-##Ejemplo
-iex> Reportes.informacion_dias(1..6, entregas_validas)
-[...]
+## Ejemplo
+
+iex> entregas = [
+...>   %{dia: 1, litros: 2200},
+...>   %{dia: 2, litros: 1800}
+...> ]
+iex> Reportes.informacion_dias(1..2, entregas)
+[
+  %{dia: 1, litros: 2200, cumplio: true},
+  %{dia: 2, litros: 1800, cumplio: false}
+]
 """
 def informacion_dias(dias, entregas_validas) do
-  dias
-  |>Enum.map(fn dia ->
-   informacion_dia(dia, entregas_validas)
-  end )
+  Enum.map(dias, fn dia -> informacion_dia(dia, entregas_validas) end)
 end
 
 @doc """
-Calcula los litros totales entregados en un dia especifico y determina si se cumplió la meta de 2000 litros
+Calcula la cantidad total de litros recibidos durante un día y determina si se alcanzó la meta diaria de 2000 litros
 
 ## Parámetros
--dia: Número del dia que se va a verificar
--entregas_validas: lista de entregas validas
+- dia: número del día que se desea consultar
+- entregas_validas: lista de mapas que contiene las entregas
+  validadas
 
 ## Ejemplo
-iex> Reportes.informacion_dia(1, entregas_validas)
-%{dia:1, litros:2150, cumplio:true}
+iex> entregas = [
+...>   %{dia: 1, litros: 1000},
+...>   %{dia: 1, litros: 1200}
+...> ]
+iex> Reportes.informacion_dia(1, entregas)
+%{dia: 1, litros: 2200, cumplio: true}
 """
 def informacion_dia(dia, entregas_validas) do
-  litros=
+  litros =
     entregas_validas
-    |>Enum.filter(fn entrega -> entrega.dia == dia end )
-    |>Enum.reduce(0, fn entrega, acc -> acc + entrega.litros end)
+    |> Enum.filter(fn entrega -> entrega.dia == dia end)
+    |> Enum.reduce(0, fn entrega, acumulado -> acumulado + entrega.litros end)
 
-    cumplio? = litros >= 2000
+  cumplio =
+    case litros >= @meta_diaria do
+      true -> true
+      false -> false
+    end
 
-    %{
-      dia: dia,
-      litros: litros,
-      cumplio: cumplio?
-    }
+  %{
+    dia: dia,
+    litros: litros,
+    cumplio: cumplio
+  }
 end
 
 @doc """
-Imprime el estado de cada dia y si se cumpió la meta todos los dias o al menos un dia
+Muestra la cantidad de litros recibidos por día y determina si se cumplió la meta diaria.
 
-##Parámetros
--lista_dias: lista de mapas con la información de todos los días
+## Parámetros
+- lista_dias: lista de mapas con la información de cada día.
 
 ## Ejemplo
-iex> Reportes.evaluar_cumplimiento_metas(lista_dias)
+iex> datos = [
+...>   %{dia: 1, litros: 2200, cumplio: true},
+...>   %{dia: 2, litros: 1800, cumplio: false}
+...> ]
+iex> Reportes.evaluar_cumplimiento_metas(datos)
 :ok
 """
 def evaluar_cumplimiento_metas(lista_dias) do
-  IO.puts(" Litros recibidos por dia ")
+  IO.puts(" Litros recibidos por día ")
 
   Enum.each(lista_dias, fn informacion ->
-  estado=
-    case informacion.cumplio do
-      true -> "cumplió meta"
-      false -> "NO cumplió meta"
-    end
+    estado =
+      case informacion.cumplio do
+        true ->
+          "cumplió meta"
 
-    IO.puts(" Dia #{informacion.dia}: #{informacion.litros}L tiene #{estado} ")
-  end )
+        false ->
+          "NO cumplió meta"
+      end
 
-  cumplio_todos?= Enum.all?(lista_dias, fn informacion -> informacion.cumplio ==true end )
-  cumplio_al_menos_uno?= Enum.any?(lista_dias, fn informacion -> informacion.cumplio == true end)
+    IO.puts(
+      "Día #{informacion.dia}: #{informacion.litros}L - #{estado}"
+    )
+  end)
 
-  IO.puts("Cumplió la meta todos los días? #{cumplio_todos?}")
-  IO.puts("cumplió la meta al menos un día? #{cumplio_al_menos_uno?}")
+  cumplio_todos =
+    Enum.all?(lista_dias, fn informacion ->
+      informacion.cumplio == true
+    end)
+
+  cumplio_al_menos_uno =
+    Enum.any?(lista_dias, fn informacion ->
+      informacion.cumplio == true
+    end)
+
+  IO.puts("Cumplió la meta todos los días? #{cumplio_todos}")
+  IO.puts("Cumplió la meta al menos un día? #{cumplio_al_menos_uno}" )
+  IO.puts(" ")
+
+  :ok
 end
 
 @doc """
-Genera el reporte con la liquidación detallada y ordenada por pago
+Genera el reporte de liquidación de los productores.
 
-## Parámetro
-- entregas_validas: lista de entregas validas
-- productores: lista de mapas con los productores
+## Parámetros
+- entregas_validas: lista de mapas que contiene las entregas validadas
+- productores: lista de mapas que contiene la información de los productores
 
 ## Ejemplo
 iex> Reportes.reporte4(entregas_validas, productores)
-[...]
+:ok
 """
 def reporte4(entregas_validas, productores) do
   productores
-   |> calcular_liquidaciones(entregas_validas)
-   |> Enum.sort_by(fn liquidacion -> liquidacion.neto end, :desc)
-   |> imprimir_liquidacion()
+  |> calcular_liquidaciones(entregas_validas)
+  |> Enum.sort_by(fn liquidacion ->
+    liquidacion.neto
+  end, :desc)
+  |> imprimir_liquidacion()
 end
 
 @doc """
-Calcula el resumen financiero para cada productor a partir de sus entregas
+Calcula la liquidación a cada productor
 
 ## Parámetros
--productores: lista de productores
--entregas_validas: lista de entregas validas
+- productores: lista de mapas con la información de los productores.
+- entregas_validas: lista de mapas con las entregas validadas.
 
 ## Ejemplo
 iex> Reportes.calcular_liquidaciones(productores, entregas_validas)
-[...]
+[
+  %{
+    codigo: "P001",
+    nombre: "Juan",
+    litros: 500,
+    valor: 900000,
+    bono: 25000,
+    transporte: 18000,
+    neto: 907000
+  }
+]
 """
 def calcular_liquidaciones(productores, entregas_validas) do
-  productores
-  |> Enum.map(fn productor -> entrega_productor=Enum.filter(entregas_validas, fn entrega -> entrega.productor== productor.codigo end )
+  Enum.map(productores, fn productor ->
 
+    entregas_productor =
+      Enum.filter(entregas_validas, fn entrega ->
+        entrega.productor == productor.codigo
+      end)
 
-  litros= Enum.reduce(entregas_productor,0, fn entrega, acc  -> acc + entrega.litros end)
-  valor= Enum.reduce(entregas_productor,0, fn entrega, acc  -> acc + calcular_valor_entrega(entrega) end)
-  bono= calcular_bono_volumen(entregas_productor)
+    litros =
+      Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
+        acumulado + entrega.litros
+      end)
 
-  dias_activos=entregas_productor |> Enum.map(fn entrega ->entrega.dia end) |> Enum.uniq() |> Enum.count()
-  transporte= case productor.transporte do
-    true -> dias_activos * 18000
-    false -> 0
-  end
+    valor =
+      Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
+        acumulado + calcular_valor_entrega(entrega)
+      end)
 
-  %{
-    codigo: productor.codigo,
-    nombre: productor.nombre,
-    litros: litros,
-    valor: valor,
-    bono: bono,
-    transporte: transporte,
-    neto: valor + bono - transporte
-  }
-end)
+    bono =
+      calcular_bono_volumen(entregas_productor)
+
+    dias_activos =
+      entregas_productor
+      |> Enum.map(fn entrega ->
+        entrega.dia
+      end)
+      |> Enum.uniq()
+      |> Enum.count()
+
+    transporte =
+      case productor.transporte do
+        true -> dias_activos * @costo_transporte_dia
+        false -> 0
+      end
+
+    %{
+      codigo: productor.codigo,
+      nombre: productor.nombre,
+      litros: litros,
+      valor: valor,
+      bono: bono,
+      transporte: transporte,
+      neto: valor + bono - transporte
+    }
+  end)
 end
 
 @doc """
-Imprime la tabla de liquidación
+Calcula el valor de una entrega según la cantidad de litros y el porcentaje de grasa.
 
 ## Parámetros
--liquidaciones: lista de liquidaciones de los productores
+- entrega: mapa que contiene los datos de una entrega.
+
+## Ejemplo
+iex> entrega = %{litros: 100, grasa: 3.5}
+iex> Reportes.calcular_valor_entrega(entrega)
+190800.0
+"""
+defp calcular_valor_entrega(entrega) do
+  base = entrega.litros * @precio_base_litro
+
+  cond do
+    entrega.grasa >= 3.5 -> base * 1.06
+
+    entrega.grasa >= 3.0 -> base
+
+    entrega.grasa >= 2.5 -> base * 0.92
+
+    true -> base * 0.80
+  end
+end
+
+@doc """
+Calcula el bono por volumen obtenido por un productor
+
+## Parámetros
+- entregas_productor: lista de entregas válidas pertenecientes
+  a un productor.
+
+## Ejemplo
+iex> entregas = [
+...>   %{dia: 1, litros: 500},
+...>   %{dia: 2, litros: 300},
+...>   %{dia: 3, litros: 450}
+...> ]
+iex> Reportes.calcular_bono_volumen(entregas)
+50000
+"""
+defp calcular_bono_volumen(entregas_productor) do
+  @dias
+  |> Enum.map(fn dia ->
+
+    litros_dia =
+      entregas_productor
+      |> Enum.filter(fn entrega ->
+        entrega.dia == dia
+      end)
+      |> Enum.reduce(0, fn entrega, acumulado ->
+        acumulado + entrega.litros
+      end)
+
+    case litros_dia >= @litros_bono do
+      true -> @bono_volumen
+      false -> 0
+    end
+  end)
+  |> Enum.sum()
+end
+
+@doc """
+Imprime la información de liquidación de los productores.
+
+## Parámetros
+- liquidaciones: lista de mapas con la información de cada productor.
+
+## Ejemplo
+iex> Reportes.imprimir_liquidacion([])
+:ok
 """
 def imprimir_liquidacion(liquidaciones) do
   IO.puts(" Liquidación de productores ")
 
   liquidaciones
-  |>Enum.with_index(1)
-  |>Enum.each(fn {element, indice} ->
-   IO.puts(" #{indice}. [#{element.codigo}] #{element.nombre} | Litros: #{element.litros} ")
-  end )
+  |> Enum.with_index(1)
+  |> Enum.each(fn {liquidacion, indice} ->
 
-IO.puts(" ")
-end
+    IO.puts( "#{indice}. [#{liquidacion.codigo}] #{liquidacion.nombre}" )
+    IO.puts( "   Litros: #{liquidacion.litros}")
+    IO.puts( "   Valor: $#{Float.round(liquidacion.valor, 2)}")
+    IO.puts( "   Bono: $#{liquidacion.bono}" )
+    IO.puts( "   Transporte: -$#{liquidacion.transporte}")
+    IO.puts( "   Neto: $#{Float.round(liquidacion.neto, 2)}" )
 
-defp calcular_valor_entrega(entrega) do
-  base= entrega.litros * 1800
-  cond do
-    entrega.grasa >= 3.5 -> base * 1.06
-    entrega.grasa >= 3.0 -> base
-    entrega.grasa >= 2.5 -> base * 0.92
-    true -> base * 0.80
-  end
-end
-
-defp calcular_bono_volumen(entregas_productor) do
-  1..6
-  |> Enum.map( fn dia ->
-   entregas_dia= Enum.filter(entregas_productor, fn entrega -> entrega.dia == dia end)
-   litros_dia= Enum.reduce(entregas_dia, 0, fn entrega, acc -> acc + entrega.litros end)
-
-   case litros_dia >= 450 do
-    true -> 25000
-    false ->0
-   end
+    IO.puts("")
   end)
-   |> Enum.sum()
+  :ok
 end
 
 @doc """
-Genera el reporte de los productores que tuvieron entregas rechazadas y su motivo
+Genera el reporte del productor o productores que entregaron la mayor cantidad de litros durante cada día
 
 ## Parámetros
-- entregas_rechazadas: lista de las entregas rechazadas
--productores: lista de mapas con la información de los productores
+- entregas_validas: lista de mapas con las entregas validadas
+- productores: lista de mapas con la información de los productores
 
-##Ejemplo
-iex> Reportes.reporte5( entregas_rechazadas, productores)
-[...]
+## Ejemplo
+iex> Reportes.reporte5(entregas_validas, productores)
+:ok
 """
-def reporte5(entregas_rechazadas, productores) do
-  productores
-  |>obtener_productores_con_rechazos(entregas_rechazadas)
-  |>imprimir_reporte_rechazos()
+def reporte5(entregas_validas, productores) do
+  productores_dia =
+    obtener_mayores_por_dia(entregas_validas, productores)
+
+
+    imprimir_reporte5(productores_dia)
+  :ok
 end
+
 @doc """
-  Filtra y agrupa los motivos de rechazo a cada productor.
+Obtiene los productores que entregaron la mayor cantidad de litros para cada uno de los seis días.
 
-  ## Parametros
-  - productores: Lista de productores.
-  - entregas_rechazadas: Lista de entregas rechazadas.
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
 
-  ## Ejemplo
-      iex> Reportes.obtener_productores_con_rechazos(productores, entregas_rechazadas)
-      [...]
-  """
-  def obtener_productores_con_rechazos(productores, entregas_rechazadas) do
-    productores
-    |> Enum.map(fn productor ->
-      rechazos_productor =
-        Enum.filter(entregas_rechazadas, fn {entrega, _motivo} ->
-          entrega.productor == productor.codigo
-        end)
+## Ejemplo
+iex> Reportes.obtener_mayores_por_dia(entregas_validas, productores)
+[
+  %{
+    dia: 1,
+    mayor: 500,
+    ganadores: [...]
+  }
+]
+"""
+def obtener_mayores_por_dia(entregas_validas, productores) do
+  @dias
+  |> Enum.map(fn dia ->
 
-      motivos_unicos =
-        rechazos_productor
-        |> Enum.map(fn {_entrega, motivo} -> motivo end)
-        |> Enum.uniq()
+    entregas_dia = Enum.filter(entregas_validas, fn entrega -> entrega.dia == dia end)
+    litros_productores = Enum.map(productores, fn productor ->
 
-      %{
-        codigo: productor.codigo,
-        nombre: productor.nombre,
-        total_rechazos: Enum.count(rechazos_productor),
-        motivos: motivos_unicos
-      }
+        litros =
+          entregas_dia
+          |> Enum.filter(fn entrega ->
+            entrega.productor == productor.codigo
+          end)
+          |> Enum.reduce(0, fn entrega, acumulado ->
+            acumulado + entrega.litros
+          end)
+
+        %{
+          codigo: productor.codigo,
+          nombre: productor.nombre,
+          litros: litros
+        }
+      end)
+
+    mayor =
+      case litros_productores do
+        [] ->
+          0
+
+        lista ->
+          Enum.max_by(lista, fn productor ->
+            productor.litros
+          end).litros
+      end
+
+    ganadores = Enum.filter(litros_productores, fn productor -> productor.litros == mayor and mayor > 0 end)
+
+    %{
+      dia: dia,
+      mayor: mayor,
+      ganadores: ganadores
+    }
+  end)
+end
+
+@doc """
+Imprime el reporte de los productores que obtuvieron la mayor cantidad de litros en cada día.
+
+## Parámetros
+- lista: lista de mapas por la función obtener_mayores_por_dia.
+
+## Ejemplo
+iex> Reportes.imprimir_reporte5([])
+:ok
+"""
+def imprimir_reporte5(lista) do
+  IO.puts(" Productor con mayor cantidad de litros por día ")
+
+  Enum.each(lista, fn informacion ->
+    case informacion.ganadores do
+      [] ->
+        IO.puts( "Día #{informacion.dia}: No hubo entregas")
+
+      ganadores ->
+        nombres =
+          Enum.map(ganadores, fn productor ->
+            "#{productor.nombre} (#{productor.codigo})"
+          end)
+          |> Enum.join(", ")
+
+        IO.puts( "Día #{informacion.dia}: #{nombres} - #{informacion.mayor} litros")
+    end
+  end)
+
+  posiciones =
+    lista
+    |> Enum.flat_map(fn informacion ->
+      informacion.ganadores
     end)
-    |> Enum.filter(fn resumen_productor -> resumen_productor.total_rechazos > 0 end)
+    |> Enum.reduce(%{}, fn productor, acumulado ->
+      Map.update(
+        acumulado,
+        productor.codigo,
+        %{
+          nombre: productor.nombre,
+          veces: 1
+        },
+        fn datos ->
+          %{datos | veces: datos.veces + 1}
+        end
+      )
+    end)
+
+  IO.puts("")
+  IO.puts(" Productor que ocupó el primer lugar en más días ")
+
+  case Map.to_list(posiciones) do
+    [] ->
+      IO.puts("No hubo productores con entregas")
+
+    lista_productores ->
+      mayor_cantidad =
+        lista_productores
+        |> Enum.map(fn {_codigo, datos} ->
+          datos.veces
+        end)
+        |> Enum.max()
+
+      ganadores_finales =
+        Enum.filter(
+          lista_productores,
+          fn {_codigo, datos} ->
+            datos.veces == mayor_cantidad
+          end
+        )
+
+      Enum.each(
+        ganadores_finales,
+        fn {codigo, datos} ->
+          IO.puts( "- #{datos.nombre} (#{codigo}): #{datos.veces} días")
+        end
+      )
   end
 
-  @doc """
-  Imprime los productores con entregas rechazadas y sus motivos.
+  IO.puts(" ")
+  :ok
+end
 
-  ## Parametros
-  - lista_rechazados: Lista de productores con sus respectivos rechazos procesados.
-  """
-  def imprimir_reporte_rechazos(lista_rechazados) do
-    IO.puts(" productores con entregas rechazadas")
+@doc """
+Genera el reporte de calidad de los productores.
 
-    case Enum.empty?(lista_rechazados) do
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
+
+## Ejemplo
+iex> Reportes.reporte6(entregas_validas, productores)
+:ok
+"""
+def reporte6(entregas_validas, productores) do
+  resultados =
+    calcular_calidad_productores(
+      entregas_validas,
+      productores
+      )
+
+
+    imprimir_reporte6(resultados)
+  :ok
+end
+
+@doc """
+Calcula el promedio de grasa de cada productor.
+
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
+
+## Ejemplo
+iex> Reportes.calcular_calidad_productores(entregas_validas,productores)
+[
+  %{
+    codigo: "P001",
+    nombre: "Juan",
+    entregas: 3,
+    promedio_grasa: 3.5
+  }
+]
+"""
+def calcular_calidad_productores(entregas_validas, productores) do
+  Enum.map(productores, fn productor ->
+
+    entregas_productor = Enum.filter(entregas_validas, fn entrega -> entrega.productor == productor.codigo end)
+    cantidad = Enum.count(entregas_productor)
+
+    case cantidad >= 3 do
       true ->
-        IO.puts("No se registraron entregas rechazadas para ningún productor.")
+
+        suma_grasa =
+          Enum.reduce(entregas_productor, 0, fn entrega, acumulado -> acumulado + entrega.grasa end)
+
+        promedio = suma_grasa / cantidad
+
+        %{
+          codigo: productor.codigo,
+          nombre: productor.nombre,
+          entregas: cantidad,
+          promedio_grasa: promedio
+        }
 
       false ->
-        Enum.each(lista_rechazados, fn resumen_productor ->
-          cadena_motivos = Enum.join(resumen_productor.motivos, ", ")
-          IO.puts("Productor: #{resumen_productor.nombre} (Código: #{resumen_productor.codigo})")
-          IO.puts("   - Cantidad de rechazos: #{resumen_productor.total_rechazos}")
-          IO.puts("   - Motivos: #{cadena_motivos}\n")
-        end)
+
+        %{
+          codigo: productor.codigo,
+          nombre: productor.nombre,
+          entregas: cantidad,
+          promedio_grasa: 0
+        }
     end
+  end)
+end
 
-    IO.puts("")
-  end
+@doc """
+Imprime el productor que presenta el mayor promedio de grasa entre los que poseen al menos tres entregas válidas
 
-  @doc """
-  Genera el reporte con el promedio de grasa y acidez de las entregas validadas de cada productor
+## Parámetros
+- resultados: lista de mapas de la función calcular_calidad_productores
 
-  ## Parametros
-  - entregas_validas: Lista de entregas validadas
-  - productores: Lista de mapas con la información de los productores
+## Ejemplo
+iex> Reportes.imprimir_reporte6([])
+:ok
+"""
+def imprimir_reporte6(resultados) do
+  IO.puts(" Mejor calidad de leche ")
 
-  ## Ejemplo
-      iex> Reportes.reporte6(entregas_validas, productores)
-      [...]
-  """
-  def reporte6(entregas_validas, productores) do
-    productores
-    |> calcular_promedios_calidad(entregas_validas)
-    |> imprimir_reporte_calidad()
-  end
-
-  @doc """
-  Calcula los promedios de grasa y acidez para cada productor
-
-  ## Parametros
-  - productores: Lista de productores
-  - entregas_validas: Lista de entregas validadas
-
-  ## Ejemplo
-      iex> Reportes.calcular_promedios_calidad(productores, entregas_validas)
-      [...]
-  """
-  def calcular_promedios_calidad(productores, entregas_validas) do
-    productores
-    |> Enum.map(fn productor ->
-      entregas_productor = Enum.filter(entregas_validas, fn entrega -> entrega.productor == productor.codigo end)
-      total_entregas = Enum.count(entregas_productor)
-
-      case total_entregas > 0 do
-        true ->
-          suma_grasa = Enum.reduce(entregas_productor, 0, fn entrega, acumulador -> acumulador + entrega.grasa end)
-          suma_acidez = Enum.reduce(entregas_productor, 0, fn entrega, acumulador -> acumulador + entrega.acidez end)
-
-          %{
-            codigo: productor.codigo,
-            nombre: productor.nombre,
-            total_entregas: total_entregas,
-            promedio_grasa: Float.round(suma_grasa / total_entregas, 2),
-            promedio_acidez: Float.round(suma_acidez / total_entregas, 2)
-          }
-
-        false ->
-          %{
-            codigo: productor.codigo,
-            nombre: productor.nombre,
-            total_entregas: 0,
-            promedio_grasa: 0.0,
-            promedio_acidez: 0.0
-          }
-      end
-    end)
-  end
-
-  @doc """
-  Imprime los promedios de calidad calculados para cada productor.
-
-  ## Parametros
-  - lista_promedios: Lista de mapas con los promedios de calidad por productor.
-  """
-  def imprimir_reporte_calidad(lista_promedios) do
-    IO.puts(" promedio de calidad por productor ")
-
-    Enum.each(lista_promedios, fn resumen_calidad ->
-      case resumen_calidad.total_entregas > 0 do
-        true ->
-          IO.puts("Productor: #{resumen_calidad.nombre} [#{resumen_calidad.codigo}]")
-          IO.puts("  - Entregas evaluadas: #{resumen_calidad.total_entregas}")
-          IO.puts("  - Promedio Grasa: #{resumen_calidad.promedio_grasa}%")
-          IO.puts("  - Promedio Acidez: #{resumen_calidad.promedio_acidez}%\n")
-
-        false ->
-          IO.puts("Productor: #{resumen_calidad.nombre} [#{resumen_calidad.codigo}] - Sin entregas aceptadas\n")
-      end
+  elegibles =
+    Enum.filter(resultados, fn productor ->
+      productor.entregas >= 3
     end)
 
-    IO.puts("")
+  case elegibles do
+    [] ->
+      IO.puts("No hay productores con al menos 3 entregas válidas.")
+
+    lista ->
+      mejor =
+        Enum.max_by(lista, fn productor ->
+          productor.promedio_grasa
+        end)
+
+      IO.puts( "Productor: #{mejor.nombre} [#{mejor.codigo}]")
+      IO.puts( "Entregas válidas: #{mejor.entregas}")
+      IO.puts( "Promedio de grasa: #{Float.round(mejor.promedio_grasa, 2)}%")
   end
+  IO.puts(" ")
+end
 
-  @doc """
-  Genera el reporte identificando los productores que realizaron entregas validas en cada uno de los 6 dias
+@doc """
+Genera el reporte general de los pagos realizados por el centro durante la semana.
 
-  ## Parametros
-  - entregas_validas: Lista de entregas validadas.
-  - productores: Lista de mapas con los productores.
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
 
-  ## Ejemplo
-      iex> Reportes.reporte7(entregas_validas, productores)
-      [...]
-  """
-  def reporte7(entregas_validas, productores) do
-    productores
-    |> evaluar_cumplimiento_dias(entregas_validas)
-    |> imprimir_productores_constantes()
-  end
+## Ejemplo
+iex> Reportes.reporte7(entregas_validas, productores)
+:ok
+"""
+def reporte7(entregas_validas, productores) do
+  liquidaciones =
+    calcular_liquidaciones(productores, entregas_validas)
 
-  @doc """
-  Evalua cuantos y cuales dias del 1 a 6 entrego cada productor.
-
-  ## Parametros
-  - productores: Lista de productores.
-  - entregas_validas: Lista de entregas validadas.
-
-  ## Ejemplo
-      iex> Reportes.evaluar_cumplimiento_dias(productores, entregas_validas)
-      [...]
-  """
-  def evaluar_cumplimiento_dias(productores, entregas_validas) do
-    productores
-    |> Enum.map(fn productor ->
-      entregas_productor = Enum.filter(entregas_validas, fn entrega -> entrega.productor == productor.codigo end)
-
-      dias_registrados =
-        entregas_productor
-        |> Enum.map(fn entrega -> entrega.dia end)
-        |> Enum.uniq()
-
-      cumplio_todos_los_dias = Enum.count(dias_registrados) == 6
-
-      %{
-        codigo: productor.codigo,
-        nombre: productor.nombre,
-        dias_entregados: Enum.count(dias_registrados),
-        cumplio_perfecto: cumplio_todos_los_dias
-      }
+  total_litros =
+    Enum.reduce(liquidaciones, 0, fn productor, acumulado ->
+      acumulado + productor.litros
     end)
-  end
 
-  @doc """
-  Imprime la lista de productores que asistieron los 6 dias
+  total_pagado =
+    Enum.reduce(liquidaciones, 0, fn productor, acumulado ->
+      acumulado + productor.neto
+    end)
 
-  ## Parametros
-  - lista_evaluada: Lista de mapas con la evaluacion de asistencia por productor
-  """
-  def imprimir_productores_constantes(lista_evaluada) do
-    IO.puts(" productores que asistieron los seis días ")
-
-    productores_cumplidos = Enum.filter(lista_evaluada, fn resumen -> resumen.cumplio_perfecto end)
-
-    case Enum.empty?(productores_cumplidos) do
+  costo_promedio =
+    case total_litros > 0 do
       true ->
-        IO.puts("Ningún productor realizó entregas los 6 días")
+        total_pagado / total_litros
 
       false ->
-        IO.puts("Productores con asistencia perfecta:")
-        Enum.each(productores_cumplidos, fn resumen ->
-          IO.puts(" - [#{resumen.codigo}] #{resumen.nombre}")
-        end)
+        0
     end
 
-    IO.puts("\nDesglose general de asistencia:")
-    Enum.each(lista_evaluada, fn resumen ->
-      estado_texto = case resumen.cumplio_perfecto do
-        true -> "Cumplió"
-        false -> "Incompleto (#{resumen.dias_entregados}/6 días)"
-      end
+  imprimir_reporte7(total_litros,total_pagado,costo_promedio)
+end
 
-      IO.puts(" - #{resumen.nombre}: #{estado_texto}")
+@doc """
+Imprime los resultados generales del centro de acopio.
+
+## Parámetros
+- total_litros: cantidad total de litros recibidos.
+- total_pagado: cantidad total de dinero pagado a los productores.
+- costo_promedio: costo promedio pagado por cada litro.
+
+## Ejemplo
+iex> Reportes.imprimir_reporte7(5000, 9000000, 1800)
+:ok
+"""
+def imprimir_reporte7(total_litros,total_pagado, costo_promedio) do
+
+  IO.puts(" Totales del centro de acopio ")
+  IO.puts("Total de litros recibidos: #{total_litros} L")
+  IO.puts("Total pagado: $#{Float.round(total_pagado, 2)}")
+  IO.puts("Costo promedio por litro: $#{Float.round(costo_promedio, 2)}")
+  IO.puts(" ")
+  :ok
+end
+
+@doc """
+Genera el reporte de los productores que realizaron al menos una entrega válida en todos los tanques.
+
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
+
+## Ejemplo
+iex> Reportes.reporte8(entregas_validas, productores)
+:ok
+"""
+def reporte8(entregas_validas, productores, tanques) do
+  resultados =
+  evaluar_productores_tanques(
+    entregas_validas,
+     productores,
+     tanques
+     )
+
+  imprimir_reporte8(resultados)
+  :ok
+end
+
+@doc """
+Determina cuáles productores realizaron al menos una entrega válida en cada uno de los tanques del centro de acopio.
+
+## Parámetros
+- entregas_validas: lista de mapas con las entregas validadas.
+- productores: lista de mapas con la información de los productores.
+
+## Ejemplo
+iex> Reportes.evaluar_productores_tanques(entregas_validas, productores, tanques)
+[ %{codigo: "P001", nombre: "Juan"}]
+"""
+def evaluar_productores_tanques(entregas_validas, productores, tanques) do
+
+  ids_tanques =
+    Enum.map(tanques, fn tanque ->
+      tanque.id
     end)
 
-    IO.puts(" ")
-  end
+  Enum.filter(productores, fn productor ->
 
-  @doc """
-  Genera el reporte con la información de ocupación y volumen almacenado en cada uno de los tanques
+    tanques_productor =
+      entregas_validas
+      |> Enum.filter(fn entrega ->
+        entrega.productor == productor.codigo
+      end)
+      |> Enum.map(fn entrega ->
+        entrega.tanque
+      end)
+      |> Enum.uniq()
 
-  ## Parametros
-  - entregas_validas: Lista de entregas validadas.
-  - tanques: Lista de mapas con los datos de los tanques del centro.
-
-  ## Ejemplo
-      iex> Reportes.reporte8(entregas_validas, tanques)
-      [...]
-  """
-  def reporte8(entregas_validas, tanques) do
-    tanques
-    |> obtener_estado_tanques(entregas_validas)
-    |> imprimir_reporte_tanques()
-  end
-
-  @doc """
-  Calcula los litros totales almacenados y el porcentaje de ocupación para cada tanque de la lista.
-
-  ## Parametros
-  - tanques: Lista de mapas con los datos de los tanques.
-  - entregas_validas: Lista de entregas validadas.
-
-  ## Ejemplo
-      iex> Reportes.obtener_estado_tanques(tanques, entregas_validas)
-      [...]
-  """
-  def obtener_estado_tanques(tanques, entregas_validas) do
-    tanques
-    |> Enum.map(fn tanque ->
-      entregas_tanque = Enum.filter(entregas_validas, fn entrega -> entrega.tanque == tanque.id end)
-
-      litros_almacenados = Enum.reduce(entregas_tanque, 0, fn entrega, acumulador -> acumulador + entrega.litros end)
-
-      porcentaje_ocupacion = case tanque.capacidad > 0 do
-        true -> Float.round((litros_almacenados / tanque.capacidad) * 100, 2)
-        false -> 0.0
-      end
-
-      %{
-        codigo: tanque.id,
-        capacidad: tanque.capacidad,
-        litros_almacenados: litros_almacenados,
-        porcentaje_ocupacion: porcentaje_ocupacion
-      }
+    Enum.all?(ids_tanques, fn id_tanque ->
+      id_tanque in tanques_productor
     end)
+  end)
+end
+
+@doc """
+Imprime los productores con entregas validas en todos los tanques
+
+## Parámetros
+- productores: lista de mapas con los productores que cumplieron la condición de entregar durante los seis días.
+
+## Ejemplo
+iex> Reportes.imprimir_reporte8([])
+:ok
+"""
+def imprimir_reporte8(productores) do
+  IO.puts(" Productores con entregas durante los seis días ")
+
+  case productores do
+    [] ->
+      IO.puts( "Ningún productor realizó entregas durante los seis días." )
+
+    lista ->
+      Enum.each(lista, fn productor ->
+        IO.puts( "- [#{productor.codigo}] #{productor.nombre}" )end)
   end
 
-  @doc """
-  Imprime el desglose detallado del estado y capacidad de cada tanque
-
-  ## Parametros
-  - lista_estado_tanques: Lista de mapas con el resumen procesado de cada tanque
-  """
-  def imprimir_reporte_tanques(lista_estado_tanques) do
-    IO.puts(" litros almacenados y ocupación de tanques ")
-
-    case Enum.empty?(lista_estado_tanques) do
-      true ->
-        IO.puts("No hay tanques registrados")
-
-      false ->
-        Enum.each(lista_estado_tanques, fn estado_tanque ->
-          IO.puts("tanque: #{estado_tanque.id}")
-          IO.puts("  - Capacidad total: #{estado_tanque.capacidad} L")
-          IO.puts("  - Litros almacenados: #{estado_tanque.litros_almacenados} L")
-          IO.puts("  - Porcentaje de ocupación: #{estado_tanque.porcentaje_ocupacion}%\n")
-        end)
-    end
-
-    IO.puts(" ")
-  end
+  IO.puts(" ")
+  :ok
+end
 end
