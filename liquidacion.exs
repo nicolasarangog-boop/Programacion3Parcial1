@@ -36,7 +36,7 @@ Funcion que calcula el total de bonificaciones por volumen de un productor
 - Entregas_validas: Lista con todas las entregas validadas hechas por un productor
 
 ## Ejemplo
-iex> Liquidacion.bonos_por_volumen(entregas)
+iex> Liquidacion.bonos_por_volumen(entregas_validas)
 "75000"
 """
 def bonos_por_volumen (entregas_validas) do
@@ -101,20 +101,20 @@ transporte: 36000,
 neto: 1396400
 }
 """
-def liquidar_productor(productor, entregas) do
+def liquidar_productor(productor, entregas_validas) do
   valor_entregas=
-    Enum.reduce(entregas, 0, fn entrega, acumulado ->
+    Enum.reduce(entregas_validas, 0, fn entrega, acumulado ->
       acumulado + valor_entrega(entrega.litros, entrega.grasa)
     end)
 
     litros_totales=
-      Enum.reduce(entregas, 0, fn entrega, acumulado ->
+      Enum.reduce(entregas_validas, 0, fn entrega, acumulado ->
         acumulado + entrega.litros
       end)
 
-      bonos= bonos_por_volumen(entregas)
+      bonos= bonos_por_volumen(entregas_validas)
 
-      descuento_total_transporte= descuento_transporte(productor, entregas)
+      descuento_total_transporte= descuento_transporte(productor, entregas_validas)
 
       neto= valor_entregas + bonos - descuento_total_transporte
 
@@ -126,6 +126,23 @@ def liquidar_productor(productor, entregas) do
         transporte: descuento_total_transporte,
         neto: neto
       }
+end
+
+@doc """
+Funcion que calcula la liquidacion final de todos los Productores
+
+## Parametros
+- Productores: Lista de mapa con la info de todos los productores
+- Entregas_validas: Lista con todas las entregas validadas hechas
+"""
+def liquidar_productores(productores, entregas_validas) do
+productores
+|>Enum.map(fn productor ->
+  entregas_productor= Enum.filter(entregas_validas, fn entrega ->
+    entrega.productor == productor.codigo
+  end)
+  liquidar_productor(productor, entregas_productor)
+end)
 end
 
 end

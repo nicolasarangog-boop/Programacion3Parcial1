@@ -176,4 +176,12 @@ Modulo con Datos y Parámetros del Proyecto (Realizado con IA)
     %{productor: "P008", tanque: "T02", dia: 3, litros: 400, grasa: 16}
     ]
   end
+
+  def tarifa_base, do: @tarifa_base
+  def meta_diaria,do: @meta_diaria
+  def dias, do: @dias
+  def max_litros, do: @max_litros
+  def umbral_bono, do: @umbral_bono
+  def bono_diario, do: @bono_diario
+  def costo_transporte, do: @costo_transporte
 end
