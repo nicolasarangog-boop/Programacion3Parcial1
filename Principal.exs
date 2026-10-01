@@ -95,10 +95,10 @@ case Enum.find(productores, fn productor -> productor.codigo == codigo end) do
   mostrar_detalle_dias(entregas)
   IO.puts("- Total entregas: #{length(entregas)}
   \n - Total litros: #{liquidacion.litros}
-  \n - Valor entregas: $#{liquidacion.valor}
-  \n - Total bonificaciones: $#{liquidacion.bonos}
-  \n - Total descuento transporte: $#{liquidacion.transporte}
-  \n - Neto: $#{liquidacion.neto}\n")
+  \n - Valor entregas: $#{formatear_dinero(liquidacion.valor)}
+  \n - Total bonificaciones: $#{formatear_dinero(liquidacion.bonos)}
+  \n - Total descuento transporte: $#{formatear_dinero(liquidacion.transporte)}
+  \n - Neto: $#{formatear_dinero(liquidacion.neto)}\n")
 end
 end
 
@@ -133,9 +133,14 @@ defp mostrar_detalle_dias(entregas_productor) do
     end
     IO.puts("\n DIA #{dia}
     \n - Litros entregados: #{litros}
-    \n - Valor entregas: $#{valor}
-    \n - Bonificación diaria: $#{bono}")
+    \n - Valor entregas: $#{formatear_dinero(valor)}
+    \n - Bonificación diaria: $#{formatear_dinero(bono)}")
   end)
+end
+
+defp formatear_dinero(valor) do
+  Float.round(valor * 1.0, 2)
+  |> :erlang.float_to_binary(decimals: 2)
 end
 
 end
