@@ -399,10 +399,76 @@ iex> Reportes.reporte4(entregas_validas, productores)
 def reporte4(entregas_validas, productores) do
   productores
   |> Liquidacion.liquidar_productores(entregas_validas)
-  |> Enum.sort_by(fn liquidacion ->
-    liquidacion.neto
-  end, :desc)
+  |> ranking([campo: :neto, orden: :desc])
   |> imprimir_liquidacion()
+end
+
+@doc """
+Calcula la liquidación a cada productor
+
+## Parámetros
+- productores: lista de mapas con la información de los productores.
+- entregas_validas: lista de mapas con las entregas validadas.
+
+## Ejemplo
+iex> Reportes.calcular_liquidaciones(productores, entregas_validas)
+[
+  %{
+    codigo: "P001",
+    nombre: "Juan",
+    litros: 500,
+    valor: 900000,
+    bono: 25000,
+    transporte: 18000,
+    neto: 907000
+  }
+]
+"""
+def calcular_liquidaciones(productores, entregas_validas) do
+  Enum.map(productores, fn productor ->
+
+    entregas_productor =
+      Enum.filter(entregas_validas, fn entrega ->
+        entrega.productor == productor.codigo
+      end)
+
+    litros =
+      Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
+        acumulado + entrega.litros
+      end)
+
+      valor =
+  Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
+    acumulado + Liquidacion.valor_entrega(entrega.litros, entrega.grasa)
+  end)
+
+    bonos =
+      Liquidacion.bonos_por_volumen(entregas_productor)
+
+    dias_activos =
+      entregas_productor
+      |> Enum.map(fn entrega ->
+        entrega.dia
+      end)
+      |> Enum.uniq()
+      |> Enum.count()
+
+    transporte =
+      case productor.transporte do
+        true -> dias_activos * @costo_transporte_dia
+        false -> 0
+      end
+
+    %{
+      codigo: productor.codigo,
+      nombre: productor.nombre,
+      litros: litros,
+      valor: valor,
+      bonos: bonos,
+      transporte: transporte,
+      neto: valor + bonos - transporte
+    }
+  end)
 end
 
 @doc """
@@ -431,6 +497,7 @@ def imprimir_liquidacion(liquidaciones) do
 
     IO.puts("")
   end)
+
   :ok
 end
 
