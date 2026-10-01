@@ -403,6 +403,33 @@ def reporte4(entregas_validas, productores) do
 end
 
 @doc """
+Realiza un ranking de una lista de mapas según un campo y un orden especificados mediante una Keyword List
+
+## Parámetros
+- datos: lista de mapas
+- opciones: Keyword List que contiene el campo y el orden
+
+## Ejemplo
+iex> datos = [
+...>   %{nombre: "Juan", neto: 500000},
+...>   %{nombre: "Ana", neto: 800000},
+...>   %{nombre: "Pedro", neto: 300000}
+...> ]
+iex> Reportes.ranking(datos, [campo: :neto, orden: :desc])
+[
+  %{nombre: "Ana", neto: 800000},
+  %{nombre: "Juan", neto: 500000},
+  %{nombre: "Pedro", neto: 300000}
+]
+"""
+def ranking(datos, opciones) do
+  campo = Keyword.get(opciones, :campo, :neto)
+  orden = Keyword.get(opciones, :orden, :desc)
+
+  Enum.sort_by(datos, &Map.get(&1, campo), orden)
+end
+
+@doc """
 Imprime la información de liquidación de los productores.
 
 ## Parámetros
