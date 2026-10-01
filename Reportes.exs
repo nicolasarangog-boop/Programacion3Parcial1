@@ -20,6 +20,53 @@ def generar_reportes(entregas_validas, entregas_rechazadas, productores, tanques
   reporte7(entregas_validas, productores)
   reporte8(entregas_validas,productores, tanques)
 end
+
+@doc """
+Mide el tiempo de ejecución de la función calcular_liquidaciones/2
+
+## Parámetros
+- productores: lista de mapas con la información de los productores.
+- entregas_validas: lista con todas las entregas validadas.
+
+## Ejemplo
+iex> productores = Datos.productores()
+iex> entregas_validas = Datos.entregas()
+iex> {tiempo, resultado} = Reportes.medir_tiempo_liquidaciones(productores, entregas_validas)
+{42, resultado}
+"""
+def medir_tiempo_liquidaciones(productores, entregas_validas) do
+  {tiempo, resultado} =
+    :timer.tc(fn ->
+      calcular_liquidaciones(productores, entregas_validas)
+    end)
+
+  IO.puts("Tiempo de calcular_liquidaciones: #{tiempo} microsegundos")
+
+  {tiempo, resultado}
+end
+
+@doc """
+Mide el tiempo de ejecución de la función `combinar_litros/2`.
+
+Utiliza `:timer.tc/1` para medir cuánto tiempo tarda en combinar
+los litros diarios del centro de acopio con los litros de un centro vecino.
+
+## Parámetros
+- mapa_r3: mapa con los litros recibidos por día obtenidos en el R3.
+- centro_vecino: mapa con los litros recibidos por día por el centro vecino.
+
+## Ejemplo
+iex> mapa_r3 = %{1 => 2000, 2 => 1900}
+iex> centro_vecino = %{1 => 1850.5, 3 => 800}
+iex> {tiempo, resultado} = Reportes.medir_tiempo_combinar(mapa_r3, centro_vecino)
+{35, resultado}
+"""
+def medir_tiempo_combinar(mapa_r3, centro_vecino) do
+  :timer.tc(fn ->
+    combinar_litros(mapa_r3, centro_vecino)
+  end)
+end
+
 @doc """
 Combina los litros registrados por día en dos mapas.
 
