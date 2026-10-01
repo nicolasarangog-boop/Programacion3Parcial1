@@ -46,20 +46,17 @@ def medir_tiempo_liquidaciones(productores, entregas_validas) do
 end
 
 @doc """
-Mide el tiempo de ejecución de la función `combinar_litros/2`.
-
-Utiliza `:timer.tc/1` para medir cuánto tiempo tarda en combinar
-los litros diarios del centro de acopio con los litros de un centro vecino.
+Mide el tiempo de ejecución de la función combinar_litros/2
 
 ## Parámetros
-- mapa_r3: mapa con los litros recibidos por día obtenidos en el R3.
-- centro_vecino: mapa con los litros recibidos por día por el centro vecino.
+- mapa_r3: mapa con los litros recibidos por día obtenidos en el R3
+- centro_vecino: mapa con los litros recibidos por día por el centro vecino
 
 ## Ejemplo
 iex> mapa_r3 = %{1 => 2000, 2 => 1900}
 iex> centro_vecino = %{1 => 1850.5, 3 => 800}
 iex> {tiempo, resultado} = Reportes.medir_tiempo_combinar(mapa_r3, centro_vecino)
-{35, resultado}
+{35, %{1 => 3850.5, 2 => 2700}}
 """
 def medir_tiempo_combinar(mapa_r3, centro_vecino) do
   :timer.tc(fn ->
