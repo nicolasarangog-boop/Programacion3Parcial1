@@ -120,6 +120,7 @@ def liquidar_productor(productor, entregas_validas) do
 
       %{
         productor: productor.codigo,
+        nombre: productor.nombre,
         litros: litros_totales,
         valor: valor_entregas,
         bonos: bonos,

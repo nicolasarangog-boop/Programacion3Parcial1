@@ -54,6 +54,7 @@ def reporte1(entregas_rechazadas) do
     :porcentaje_invalido
   ]
 
+  resultados=
   Enum.map(motivos, fn motivo ->
     conteo =
       Enum.count(entregas_rechazadas, fn {_entrega, motivo_entrega} ->
@@ -62,6 +63,16 @@ def reporte1(entregas_rechazadas) do
 
     {motivo, conteo}
   end)
+
+  IO.puts("Entregas rechazadas ")
+
+  Enum.each(resultados, fn{motivo, conteo} ->
+    IO.puts("#{motivo}: #{conteo}")
+  end)
+
+  IO.puts(" ")
+
+  resultados
 end
 
 @doc """
@@ -325,79 +336,11 @@ iex> Reportes.reporte4(entregas_validas, productores)
 """
 def reporte4(entregas_validas, productores) do
   productores
-  |> calcular_liquidaciones(entregas_validas)
+  |> Liquidacion.liquidar_productores(entregas_validas)
   |> Enum.sort_by(fn liquidacion ->
     liquidacion.neto
   end, :desc)
   |> imprimir_liquidacion()
-end
-
-@doc """
-Calcula la liquidación a cada productor
-
-## Parámetros
-- productores: lista de mapas con la información de los productores.
-- entregas_validas: lista de mapas con las entregas validadas.
-
-## Ejemplo
-iex> Reportes.calcular_liquidaciones(productores, entregas_validas)
-[
-  %{
-    codigo: "P001",
-    nombre: "Juan",
-    litros: 500,
-    valor: 900000,
-    bono: 25000,
-    transporte: 18000,
-    neto: 907000
-  }
-]
-"""
-def calcular_liquidaciones(productores, entregas_validas) do
-  Enum.map(productores, fn productor ->
-
-    entregas_productor =
-      Enum.filter(entregas_validas, fn entrega ->
-        entrega.productor == productor.codigo
-      end)
-
-    litros =
-      Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
-        acumulado + entrega.litros
-      end)
-
-      valor =
-  Enum.reduce(entregas_productor, 0, fn entrega, acumulado ->
-    acumulado + Liquidacion.valor_entrega(entrega.litros, entrega.grasa)
-  end)
-
-    bonos =
-      Liquidacion.bonos_por_volumen(entregas_productor)
-
-    dias_activos =
-      entregas_productor
-      |> Enum.map(fn entrega ->
-        entrega.dia
-      end)
-      |> Enum.uniq()
-      |> Enum.count()
-
-    transporte =
-      case productor.transporte do
-        true -> dias_activos * @costo_transporte_dia
-        false -> 0
-      end
-
-    %{
-      codigo: productor.codigo,
-      nombre: productor.nombre,
-      litros: litros,
-      valor: valor,
-      bonos: bonos,
-      transporte: transporte,
-      neto: valor + bonos - transporte
-    }
-  end)
 end
 
 @doc """
@@ -417,12 +360,12 @@ def imprimir_liquidacion(liquidaciones) do
   |> Enum.with_index(1)
   |> Enum.each(fn {liquidacion, indice} ->
 
-    IO.puts( "#{indice}. [#{liquidacion.codigo}] #{liquidacion.nombre}" )
+    IO.puts( "#{indice}. [#{liquidacion.productor}] #{liquidacion.nombre}" )
     IO.puts( "   Litros: #{liquidacion.litros}")
-    IO.puts( "   Valor: $#{Float.round(liquidacion.valor* 1.0, 2)}")
-    IO.puts( "   Bono: $#{liquidacion.bono}" )
-    IO.puts( "   Transporte: -$#{liquidacion.transporte}")
-    IO.puts( "   Neto: $#{Float.round(liquidacion.neto * 1.0, 2)}" )
+    IO.puts( "   Valor: $#{formatear_dinero(liquidacion.valor)}")
+    IO.puts( "   Bono: $#{formatear_dinero(liquidacion.bonos)}" )
+    IO.puts( "   Transporte: -$#{formatear_dinero(liquidacion.transporte)}")
+    IO.puts( "   Neto: $#{formatear_dinero(liquidacion.neto)}" )
 
     IO.puts("")
   end)
@@ -643,10 +586,14 @@ def calcular_calidad_productores(entregas_validas, productores) do
     case cantidad >= 3 do
       true ->
 
-        suma_grasa =
-          Enum.reduce(entregas_productor, 0, fn entrega, acumulado -> acumulado + entrega.grasa end)
+        litros=
+          entregas_productor
+          |> Enum.reduce(0, fn entrega, acumulado -> acumulado + entrega.litros end)
 
-        promedio = suma_grasa / cantidad
+        suma_ponderada=
+          Enum.reduce(entregas_productor, 0, fn entrega, acumulado -> acumulado + entrega.grasa * entrega.litros end)
+
+        promedio = suma_ponderada / litros
 
         %{
           codigo: productor.codigo,
@@ -690,14 +637,21 @@ def imprimir_reporte6(resultados) do
       IO.puts("No hay productores con al menos 3 entregas válidas.")
 
     lista ->
-      mejor =
+      mayor=
         Enum.max_by(lista, fn productor ->
           productor.promedio_grasa
+        end).promedio_grasa
+
+      mejores =
+        Enum.filter(lista, fn productor ->
+          productor.promedio_grasa == mayor
         end)
 
-      IO.puts( "Productor: #{mejor.nombre} [#{mejor.codigo}]")
-      IO.puts( "Entregas válidas: #{mejor.entregas}")
-      IO.puts( "Promedio de grasa: #{Float.round(mejor.promedio_grasa, 2)}%")
+      Enum.each(mejores, fn productor ->
+      IO.puts( "Productor: #{productor.nombre} [#{productor.codigo}]")
+      IO.puts( "Entregas válidas: #{productor.entregas}")
+      IO.puts( "Promedio de grasa ponderado: #{Float.round(productor.promedio_grasa, 2)}%")
+      end)
   end
   IO.puts(" ")
 end
@@ -715,7 +669,7 @@ iex> Reportes.reporte7(entregas_validas, productores)
 """
 def reporte7(entregas_validas, productores) do
   liquidaciones =
-    calcular_liquidaciones(productores, entregas_validas)
+    Liquidacion.liquidar_productores(productores, entregas_validas)
 
   total_litros =
     Enum.reduce(liquidaciones, 0, fn productor, acumulado ->
@@ -847,4 +801,10 @@ def imprimir_reporte8(productores) do
   IO.puts(" ")
   :ok
 end
+
+defp formatear_dinero(valor) do
+  Float.round(valor * 1.0, 2)
+  |> :erlang.float_to_binary(decimals: 2)
+end
+
 end
