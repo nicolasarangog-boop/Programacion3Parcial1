@@ -16,7 +16,7 @@
 
 ### AUTORES
 
-**Briyith Sanchez Alonso**
+**Briyith Sanchez Alonso** <br>
 **Nicolás Arango Gutiérrez**
 
 ---
