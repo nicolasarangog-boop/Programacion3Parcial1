@@ -20,6 +20,24 @@ def generar_reportes(entregas_validas, entregas_rechazadas, productores, tanques
   reporte7(entregas_validas, productores)
   reporte8(entregas_validas,productores, tanques)
 end
+@doc """
+Combina los litros registrados por día en dos mapas.
+
+## Parámetros
+- mapa_r3: mapa que contiene los litros registrados por día en el reporte 3.
+- centro_vecino: mapa que contiene los litros registrados por día en el centro vecino.
+
+## Ejemplo
+iex> mapa_r3 = %{1 => 500, 2 => 600}
+iex> centro_vecino = %{1 => 200, 2 => 300, 3 => 400}
+iex> Reportes.combinar_litros(mapa_r3, centro_vecino)
+%{1 => 700, 2 => 900, 3 => 400}
+"""
+def combinar_litros(mapa_r3, centro_vecino) do
+  Map.merge(mapa_r3, centro_vecino, fn _dia, litros_r3, litros_vecino ->
+    litros_r3 + litros_vecino
+  end)
+end
 
 @doc """
 Genera un reporte de las entregas rechazadas
