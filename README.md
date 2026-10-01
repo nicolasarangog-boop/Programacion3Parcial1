@@ -10,8 +10,6 @@
 
 **Desarrollado en Elixir**
 
-<br>
-
 ---
 
 ### AUTORES
