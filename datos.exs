@@ -177,6 +177,7 @@ Modulo con Datos y Parámetros del Proyecto (Realizado con IA)
     ]
   end
 
+  #Funciones para acceder a los parámetros
   def tarifa_base, do: @tarifa_base
   def meta_diaria,do: @meta_diaria
   def dias, do: @dias

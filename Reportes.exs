@@ -21,68 +21,6 @@ def generar_reportes(entregas_validas, entregas_rechazadas, productores, tanques
 end
 
 @doc """
-Mide el tiempo de ejecución de la función Liquidacion.liquidar_productores/2
-
-## Parámetros
-- productores: lista de mapas con la información de los productores.
-- entregas_validas: lista con todas las entregas validadas.
-
-## Ejemplo
-iex> productores = Datos.productores()
-iex> entregas_validas = Datos.entregas()
-iex> {tiempo, resultado} = Reportes.medir_tiempo_liquidaciones(productores, entregas_validas)
-{42, resultado}
-"""
-def medir_tiempo_liquidaciones(productores, entregas_validas) do
-  {tiempo, resultado} =
-    :timer.tc(fn ->
-      Liquidacion.liquidar_productores(productores, entregas_validas)
-    end)
-
-  IO.puts("Tiempo de liquidar_productores: #{tiempo} microsegundos")
-
-  {tiempo, resultado}
-end
-
-@doc """
-Mide el tiempo de ejecución de la función combinar_litros/2
-
-## Parámetros
-- mapa_r3: mapa con los litros recibidos por día obtenidos en el R3
-- centro_vecino: mapa con los litros recibidos por día por el centro vecino
-
-## Ejemplo
-iex> mapa_r3 = %{1 => 2000, 2 => 1900}
-iex> centro_vecino = %{1 => 1850.5, 3 => 800}
-iex> {tiempo, resultado} = Reportes.medir_tiempo_combinar(mapa_r3, centro_vecino)
-{35, %{1 => 3850.5, 2 => 2700}}
-"""
-def medir_tiempo_combinar(mapa_r3, centro_vecino) do
-  :timer.tc(fn ->
-    combinar_litros(mapa_r3, centro_vecino)
-  end)
-end
-
-@doc """
-Combina los litros registrados por día en dos mapas.
-
-## Parámetros
-- mapa_r3: mapa que contiene los litros registrados por día en el reporte 3.
-- centro_vecino: mapa que contiene los litros registrados por día en el centro vecino.
-
-## Ejemplo
-iex> mapa_r3 = %{1 => 500, 2 => 600}
-iex> centro_vecino = %{1 => 200, 2 => 300, 3 => 400}
-iex> Reportes.combinar_litros(mapa_r3, centro_vecino)
-%{1 => 700, 2 => 900, 3 => 400}
-"""
-def combinar_litros(mapa_r3, centro_vecino) do
-  Map.merge(mapa_r3, centro_vecino, fn _dia, litros_r3, litros_vecino ->
-    litros_r3 + litros_vecino
-  end)
-end
-
-@doc """
 Genera un reporte de las entregas rechazadas
 
 ## Parámetros
